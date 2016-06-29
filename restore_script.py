@@ -1,6 +1,8 @@
 import boto3
 import datetime
 import sys
+import os
+import distutils.dir_util
 
 S3_BUCKET_NAME = 'lynx-backup'
 s3_client = boto3.client('s3')
@@ -29,11 +31,53 @@ print MYSQL_BACKUP_TO_DOWNLOAD
 print MONGO_BACKUP_TO_DOWNLOAD
 print MEDIA_BACKUP_TO_DOWNLOAD
 
+try:
+    print "Downloading MYSQL Backup"
+    s3_client.download_file(S3_BUCKET_NAME, MYSQL_BACKUP_TO_DOWNLOAD, MYSQL_BACKUP_TO_DOWNLOAD)
 
-s3_client.download_file(S3_BUCKET_NAME, MYSQL_BACKUP_TO_DOWNLOAD, MYSQL_BACKUP_TO_DOWNLOAD)
-s3_client.download_file(S3_BUCKET_NAME, MONGO_BACKUP_TO_DOWNLOAD, MONGO_BACKUP_TO_DOWNLOAD)
-s3_client.download_file(S3_BUCKET_NAME, MEDIA_BACKUP_TO_DOWNLOAD, MEDIA_BACKUP_TO_DOWNLOAD)
-
-
+    print "Downloading Mongo Backup"
+    s3_client.download_file(S3_BUCKET_NAME, MONGO_BACKUP_TO_DOWNLOAD, '{0}.zip'.format(MONGO_BACKUP_TO_DOWNLOAD))
     
-    
+    print "Downloading Media Backup"
+    s3_client.download_file(S3_BUCKET_NAME, MEDIA_BACKUP_TO_DOWNLOAD, '{0}.zip'.format(MEDIA_BACKUP_TO_DOWNLOAD))
+
+except Exception as e:
+    print "Exception occured while fetching the backup from S3, Backup with specified date/name might not be available on S3"
+    print "Error : {0}".format(e)
+    sys.exit()
+
+
+MYSQL_BACKUP_PATH = os.path.join(os.getcwd(), MYSQL_BACKUP_TO_DOWNLOAD)
+MYSQL_USER = 'root'
+MYSQL_PASSWORD = ''
+MYSQL_RESTORE_COMMAND = 'mysql --user={0} --password={1} < {2}'.format(MYSQL_USER, MYSQL_PASSWORD, MYSQL_BACKUP_PATH)
+
+
+MONGO_BACKUP_ZIP_PATH = os.path.join(os.getcwd(), '{0}.zip'.format(MONGO_BACKUP_TO_DOWNLOAD))
+import zipfile
+MONGO_BACKUP_DIR_PATH = os.path.join(os.getcwd(), 'mongo')
+mongo_zipfile = zipfile.ZipFile(MONGO_BACKUP_ZIP_PATH)
+
+print "Extracting mongo backup"
+mongo_zipfile.extractall(MONGO_BACKUP_DIR_PATH)
+
+MONGO_RESTORE_COMMAND = 'mongorestore -drop {0}'.format(MONGO_BACKUP_DIR_PATH)
+
+
+MEDIA_BACKUP_ZIP_PATH = os.path.join(os.getcwd(), '{0}.zip'.format(MEDIA_BACKUP_TO_DOWNLOAD))
+MEDIA_BACKUP_DIR_PATH = os.path.join(os.getcwd(), 'media')
+media_zipfile = zipfile.ZipFile(MEDIA_BACKUP_ZIP_PATH)
+
+print "Exctracting Media backup"
+media_zipfile.extractall(MEDIA_BACKUP_DIR_PATH)
+
+
+print "BACKUP MYSQL"
+os.system(MYSQL_RESTORE_COMMAND)
+
+print "BACKUP MONGO"
+os.system(MONGO_RESTORE_COMMAND)
+
+print "Backup MEDIA"
+distutils.dir_util.copy_tree(MEDIA_BACKUP_DIR_PATH, '/edx/var/edxapp/media')
+
