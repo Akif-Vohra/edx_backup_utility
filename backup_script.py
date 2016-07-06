@@ -60,13 +60,13 @@ S3_BUCKET_NAME = 'lynx-edx-learning-platform'
 s3_client = boto3.client('s3')
 
 #Upload MYSQL to s3
-print "Upload mysql backup to s3"
+print "Upload mysql backup to s3 {0}".format(MYSQL_BACKUP_FILE_NAME)
 s3_client.upload_file(MYSQL_BACKUP_NAME, S3_BUCKET_NAME, MYSQL_BACKUP_FILE_NAME)
 
 #Upload Mongo to s3
-print "Upload Mongo to s3"
+print "Upload Mongo to s3 {0}".format(MONGO_BACKUP_FILE_NAME)
 s3_client.upload_file('{0}.zip'.format(mongo_backup_zip_name), S3_BUCKET_NAME, MONGO_BACKUP_FILE_NAME)
 
 #Upload media to s3
-print "Upload media backup to s3"
+print "Upload media backup to s3 {0}".format(ZIP_FILE)
 s3_client.upload_file('{0}.zip'.format(ZIP_FILE), S3_BUCKET_NAME, ZIP_FILE)
